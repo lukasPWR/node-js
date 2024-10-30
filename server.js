@@ -17,8 +17,8 @@ app.get('/', (req, res) => {
 app.use('/models', express.static(path.join(__dirname, 'models')));
 
 app.post('/faceNumber', (req, res) => {
-  const { faceNumber,pageUrl,timestamp } = req.body;
-  console.log(`Odebrano liczbę twarzy: ${faceNumber}`);
+  const { uniqueFaceCount,pageUrl,timestamp } = req.body;
+  console.log(`Odebrano liczbę twarzy: ${uniqueFaceCount}`);
   console.log(`Odebrano strone: ${pageUrl}`);
   console.log(`Odebrano timestamp: ${timestamp}`);
   

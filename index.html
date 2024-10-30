@@ -52,14 +52,16 @@
         <canvas id="canvas"></canvas>
     </div>
     
-    <div id="detected-count" class="status">Liczba wykrytych twarzy: 0</div>
+    <div id="detected-count" class="status">Liczba unikalnych twarzy: 0</div>
 
     <script>
         const video = document.getElementById('video');
         const canvas = document.getElementById('canvas');
         const context = canvas.getContext('2d');
         const detectedCountDiv = document.getElementById('detected-count');
-        let previousFaceNumber = 0;
+        const uniqueFaces = []; 
+
+        const TOLERANCE = 0.6; 
 
         function startVideo() {
           if (!video) {
@@ -84,6 +86,12 @@
           }
         }
 
+        function isFaceUnique(newDescriptor) {
+          return uniqueFaces.every(existingDescriptor => 
+            faceapi.euclideanDistance(existingDescriptor, newDescriptor) > TOLERANCE
+          );
+        }
+
         async function recognizeFace() {
           const displaySize = { width: video.videoWidth, height: video.videoHeight };
           faceapi.matchDimensions(canvas, displaySize);
@@ -101,18 +109,26 @@
 
               const resizedDetections = faceapi.resizeResults(detections, displaySize);
               context.clearRect(0, 0, canvas.width, canvas.height);
-              const numberOfFaces = detections.length;
-              detectedCountDiv.textContent = `Liczba wykrytych twarzy: ${numberOfFaces}`;
-              console.log(`Liczba wykrytych twarzy: ${numberOfFaces}`);
-              detectedCountDiv.className = 'status status-orange';
 
-              if (numberOfFaces !== previousFaceNumber) {
-                previousFaceNumber = numberOfFaces; 
+              let newUniqueFaces = 0;
+
+              detections.forEach(detection => {
+                const descriptor = detection.descriptor;
+
+                if (isFaceUnique(descriptor)) {
+                  uniqueFaces.push(descriptor); 
+                  newUniqueFaces += 1;
+                }
+              });
+
+              if (newUniqueFaces > 0) {
+                detectedCountDiv.textContent = `Liczba unikalnych twarzy: ${uniqueFaces.length}`;
+                detectedCountDiv.className = 'status status-orange';
 
                 const dataToSend = {
-                  faceNumber: numberOfFaces,
+                  uniqueFaceCount: uniqueFaces.length,
                   pageUrl: window.location.href,
-                  timestamp: Date.now() 
+                  timestamp: Date.now()
                 };
 
                 try {
@@ -132,6 +148,7 @@
                   console.error('Błąd połączenia z serwerem:', err);
                 }
               }
+
             } catch (err) {
               console.error('Błąd rozpoznawania twarzy:', err);
             }
