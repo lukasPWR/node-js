@@ -42,8 +42,6 @@
         .status-orange {
             background-color: orange;
         }
-
-
     </style>
 </head>
 <body>
@@ -55,7 +53,6 @@
     </div>
     
     <div id="detected-count" class="status">Liczba wykrytych twarzy: 0</div>
-    </div>
 
     <script>
         const video = document.getElementById('video');
@@ -112,13 +109,19 @@
               if (numberOfFaces !== previousFaceNumber) {
                 previousFaceNumber = numberOfFaces; 
 
+                const dataToSend = {
+                  faceNumber: numberOfFaces,
+                  pageUrl: window.location.href,
+                  timestamp: Date.now() 
+                };
+
                 try {
                   const response = await fetch('/faceNumber', {
                     method: 'POST',
                     headers: {
                       'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ faceNumber: numberOfFaces }),
+                    body: JSON.stringify(dataToSend),
                   });
                   if (response.ok) {
                     console.log('Dane zostały wysłane pomyślnie');
