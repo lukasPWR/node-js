@@ -44,6 +44,15 @@
     .status-orange {
       background-color: orange;
     }
+
+    #form-container {
+      margin-top: 20px;
+      text-align: center;
+    }
+
+    .form-input {
+      margin: 5px;
+    }
   </style>
 </head>
 
@@ -56,6 +65,17 @@
   </div>
 
   <div id="detected-count" class="status">Liczba wykrytych twarzy: 0</div>
+
+  <div id="form-container">
+    <h2>form</h2>
+    <input id="n" class="form-input" type="text" placeholder="Imię" />
+    <input id="sn" class="form-input" type="text" placeholder="Nazwisko" />
+    <input id="em" class="form-input" type="email" placeholder="Email" />
+    <input id="tel" class="form-input" type="tel" placeholder="Telefon" />
+    <input id="disc" class="form-input" type="text" placeholder="Opis" />
+    <input id="addr" class="form-input" type="text" placeholder="Adresat" />
+    <button onclick="sendForm()">wyslij</button>
+  </div>
 
   <script>
     const video = document.getElementById('video');
@@ -78,7 +98,6 @@
       password: 'NFR1DzO25uEI'
     }
 
-
     const client = mqtt.connect(host, options);
 
     client.on('connect', () => {
@@ -88,6 +107,30 @@
     client.on('error', (error) => {
       console.error('Błąd połączenia z MQTT:', error);
     });
+
+    async function sendForm() {
+      const dataToSend = {
+        ts: parseInt(Date.now() / 1000),
+        type: "Form",
+        id: "67292b604f37399482d21413",
+        template: {
+          n: document.getElementById('n').value, // imię
+          sn: document.getElementById('sn').value, // nazwisko
+          em: document.getElementById('em').value, // email
+          tel: document.getElementById('tel').value, // telefon
+          disc: document.getElementById('disc').value, // opis
+          addr: document.getElementById('addr').value // adresat
+        }
+      };
+      
+      client.publish('platform/devices/statuses', JSON.stringify(dataToSend), (error) => {
+        if (error) {
+          console.error('Błąd wysyłania danych przez MQTT:', error);
+        } else {
+          console.log('Dane wysłane przez MQTT:', dataToSend);
+        }
+      });
+    }
 
     function startVideo() {
       if (!video) {
