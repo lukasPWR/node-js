@@ -6,17 +6,50 @@
   <title>Face Recognition Web App</title>
   <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1/dist/face-api.js"></script>
   <style>
-    /* Twoje style */
-    #video-container { position: relative; width: 640px; height: 480px; margin: 0 auto; }
-    #video { visibility: hidden; width: 100%; height: 100%; border: 1px solid black; display: block; }
-    #canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
-    .status { font-size: 1.2em; padding: 10px; margin-top: 10px; width: 300px; color: white; text-align: center; }
-    .status-orange { background-color: orange; }
-    #form-container { margin-top: 20px; text-align: center; }
-    .form-input { margin: 5px; }
+    #video-container {
+      position: relative;
+      width: 640px;
+      height: 480px;
+      margin: 0 auto;
+    }
+
+    #video {
+      visibility: hidden;
+      width: 100%;
+      height: 100%;
+      border: 1px solid black;
+      display: block;
+    }
+
+    #canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    .status {
+      font-size: 1.2em;
+      padding: 10px;
+      margin-top: 10px;
+      width: 300px;
+      color: white;
+      text-align: center;
+      background-color: orange;
+    }
+
+    #form-container {
+      margin-top: 20px;
+      text-align: center;
+    }
+
+    .form-input {
+      margin: 5px;
+    }
   </style>
 </head>
-
 <body>
   <h1 style="text-align: center;">Face Recognition Web Application</h1>
 
@@ -45,44 +78,12 @@
     const detectedCountDiv = document.getElementById('detected-count');
     let previousFaceNumber = 0;
 
-    async function sendForm() {
-      const dataToSend = {
-        ts: parseInt(Date.now() / 1000),
-        type: "Form",
-        id: "67292b604f37399482d21413",
-        template: {
-          n: document.getElementById('n').value,
-          sn: document.getElementById('sn').value,
-          em: document.getElementById('em').value,
-          tel: document.getElementById('tel').value,
-          disc: document.getElementById('disc').value,
-          addr: document.getElementById('addr').value
-        }
-      };
-
-      try {
-        const response = await fetch('/saveFormData', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(dataToSend)
-        });
-        if (response.ok) {
-          console.log('Dane formularza zapisane na serwerze');
-        } else {
-          console.error('Błąd podczas zapisywania danych formularza na serwerze');
-        }
-      } catch (err) {
-        console.error('Błąd połączenia z serwerem:', err);
-      }
-    }
-
     function startVideo() {
       if (!video) {
         console.error('Nie znaleziono elementu video');
         return;
       }
+
       navigator.mediaDevices.getUserMedia({ video: {} })
         .then(stream => {
           video.srcObject = stream;
@@ -98,6 +99,11 @@
       } catch (err) {
         console.error("Błąd podczas ładowania modeli:", err);
       }
+    }
+
+    function saveFaceData(data) {
+      localStorage.setItem("faceData", JSON.stringify(data));
+      console.log('Dane wykrycia twarzy zapisane w LocalStorage');
     }
 
     async function recognizeFace() {
@@ -119,7 +125,6 @@
           context.clearRect(0, 0, canvas.width, canvas.height);
           const numberOfFaces = detections.length;
           detectedCountDiv.textContent = `Liczba wykrytych twarzy: ${numberOfFaces}`;
-          detectedCountDiv.className = 'status status-orange';
 
           if (numberOfFaces !== previousFaceNumber) {
             previousFaceNumber = numberOfFaces;
@@ -135,27 +140,40 @@
               }
             };
 
-            try {
-              const response = await fetch('/saveFaceData', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(dataToSend)
-              });
-              if (response.ok) {
-                console.log('Dane wykrycia twarzy zapisane na serwerze');
-              } else {
-                console.error('Błąd podczas zapisywania danych wykrycia twarzy na serwerze');
-              }
-            } catch (err) {
-              console.error('Błąd połączenia z serwerem:', err);
-            }
+            saveFaceData(dataToSend);
           }
         } catch (err) {
           console.error('Błąd rozpoznawania twarzy:', err);
         }
       }, 500);
+    }
+
+    function saveFormData(data) {
+      localStorage.setItem("formData", JSON.stringify(data));
+      console.log('Dane formularza zapisane w LocalStorage');
+    }
+
+    async function sendForm() {
+      const dataToSend = {
+        ts: parseInt(Date.now() / 1000),
+        type: "Form",
+        id: "67292b604f37399482d21413",
+        template: {
+          n: document.getElementById('n').value,
+          sn: document.getElementById('sn').value,
+          em: document.getElementById('em').value,
+          tel: document.getElementById('tel').value,
+          disc: document.getElementById('disc').value,
+          addr: document.getElementById('addr').value
+        }
+      };
+      
+      saveFormData(dataToSend);
+    }
+
+    function loadDataFromLocalStorage(key) {
+      const data = localStorage.getItem(key);
+      return data ? JSON.parse(data) : null;
     }
 
     startVideo();
@@ -168,5 +186,4 @@
     });
   </script>
 </body>
-
 </html>
