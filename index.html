@@ -37,6 +37,9 @@
       width: 300px;
       color: white;
       text-align: center;
+    }
+
+    .status-orange {
       background-color: orange;
     }
 
@@ -69,6 +72,7 @@
     <input id="disc" class="form-input" type="text" placeholder="Opis" />
     <input id="addr" class="form-input" type="text" placeholder="Adresat" />
     <button onclick="sendForm()">Wyślij</button>
+    <button onclick="downloadFaceData()">Pobierz dane twarzy</button>
   </div>
 
   <script>
@@ -77,6 +81,39 @@
     const context = canvas.getContext('2d');
     const detectedCountDiv = document.getElementById('detected-count');
     let previousFaceNumber = 0;
+
+    let faceDataArray = JSON.parse(localStorage.getItem('faceDataArray')) || [];
+
+    function saveDataAsFile(data, filename) {
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    async function sendForm() {
+      const dataToSend = {
+        ts: parseInt(Date.now() / 1000),
+        type: "Form",
+        id: "67292b604f37399482d21413",
+        template: {
+          n: document.getElementById('n').value,
+          sn: document.getElementById('sn').value,
+          em: document.getElementById('em').value,
+          tel: document.getElementById('tel').value,
+          disc: document.getElementById('disc').value,
+          addr: document.getElementById('addr').value
+        }
+      };
+      
+      saveDataAsFile(dataToSend, "formData.json");
+      console.log('Dane formularza zapisane jako plik formData.json');
+    }
 
     function startVideo() {
       if (!video) {
@@ -101,11 +138,6 @@
       }
     }
 
-    function saveFaceData(data) {
-      localStorage.setItem("faceData", JSON.stringify(data));
-      console.log('Dane wykrycia twarzy zapisane w LocalStorage');
-    }
-
     async function recognizeFace() {
       const displaySize = { width: video.videoWidth, height: video.videoHeight };
       faceapi.matchDimensions(canvas, displaySize);
@@ -125,11 +157,12 @@
           context.clearRect(0, 0, canvas.width, canvas.height);
           const numberOfFaces = detections.length;
           detectedCountDiv.textContent = `Liczba wykrytych twarzy: ${numberOfFaces}`;
+          detectedCountDiv.className = 'status status-orange';
 
           if (numberOfFaces !== previousFaceNumber) {
             previousFaceNumber = numberOfFaces;
 
-            const dataToSend = {
+            const faceData = {
               ts: parseInt(Date.now() / 1000),
               type: "Face",
               id: "67233587b2320a78b16789a4",
@@ -140,7 +173,10 @@
               }
             };
 
-            saveFaceData(dataToSend);
+            // Dodaj dane twarzy do tablicy i zapisz w localStorage
+            faceDataArray.push(faceData);
+            localStorage.setItem('faceDataArray', JSON.stringify(faceDataArray));
+            console.log('Dane wykrycia twarzy zapisane w localStorage');
           }
         } catch (err) {
           console.error('Błąd rozpoznawania twarzy:', err);
@@ -148,32 +184,11 @@
       }, 500);
     }
 
-    function saveFormData(data) {
-      localStorage.setItem("formData", JSON.stringify(data));
-      console.log('Dane formularza zapisane w LocalStorage');
-    }
-
-    async function sendForm() {
-      const dataToSend = {
-        ts: parseInt(Date.now() / 1000),
-        type: "Form",
-        id: "67292b604f37399482d21413",
-        template: {
-          n: document.getElementById('n').value,
-          sn: document.getElementById('sn').value,
-          em: document.getElementById('em').value,
-          tel: document.getElementById('tel').value,
-          disc: document.getElementById('disc').value,
-          addr: document.getElementById('addr').value
-        }
-      };
-      
-      saveFormData(dataToSend);
-    }
-
-    function loadDataFromLocalStorage(key) {
-      const data = localStorage.getItem(key);
-      return data ? JSON.parse(data) : null;
+    function downloadFaceData() {
+      // Pobierz dane z localStorage i pobierz jako plik JSON
+      const faceData = JSON.parse(localStorage.getItem('faceDataArray')) || [];
+      saveDataAsFile(faceData, "faceData.json");
+      console.log('Dane twarzy pobrane jako plik faceData.json');
     }
 
     startVideo();
