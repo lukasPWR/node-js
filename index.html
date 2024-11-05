@@ -1,58 +1,19 @@
 <!DOCTYPE html>
 <html lang="pl">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Face Recognition Web App</title>
   <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1/dist/face-api.js"></script>
-  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
   <style>
-    #video-container {
-      position: relative;
-      width: 640px;
-      height: 480px;
-      margin: 0 auto;
-    }
-
-    #video {
-      visibility: hidden;
-      width: 100%;
-      height: 100%;
-      border: 1px solid black;
-      display: block;
-    }
-
-    #canvas {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-    }
-
-    .status {
-      font-size: 1.2em;
-      padding: 10px;
-      margin-top: 10px;
-      width: 300px;
-      color: white;
-      text-align: center;
-    }
-
-    .status-orange {
-      background-color: orange;
-    }
-
-    #form-container {
-      margin-top: 20px;
-      text-align: center;
-    }
-
-    .form-input {
-      margin: 5px;
-    }
+    /* Twoje style */
+    #video-container { position: relative; width: 640px; height: 480px; margin: 0 auto; }
+    #video { visibility: hidden; width: 100%; height: 100%; border: 1px solid black; display: block; }
+    #canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+    .status { font-size: 1.2em; padding: 10px; margin-top: 10px; width: 300px; color: white; text-align: center; }
+    .status-orange { background-color: orange; }
+    #form-container { margin-top: 20px; text-align: center; }
+    .form-input { margin: 5px; }
   </style>
 </head>
 
@@ -67,14 +28,14 @@
   <div id="detected-count" class="status">Liczba wykrytych twarzy: 0</div>
 
   <div id="form-container">
-    <h2>form</h2>
+    <h2>Formularz</h2>
     <input id="n" class="form-input" type="text" placeholder="Imię" />
     <input id="sn" class="form-input" type="text" placeholder="Nazwisko" />
     <input id="em" class="form-input" type="email" placeholder="Email" />
     <input id="tel" class="form-input" type="tel" placeholder="Telefon" />
     <input id="disc" class="form-input" type="text" placeholder="Opis" />
     <input id="addr" class="form-input" type="text" placeholder="Adresat" />
-    <button onclick="sendForm()">wyslij</button>
+    <button onclick="sendForm()">Wyślij</button>
   </div>
 
   <script>
@@ -84,52 +45,37 @@
     const detectedCountDiv = document.getElementById('detected-count');
     let previousFaceNumber = 0;
 
-    const clientId = Math.random().toString(16).substr(2, 8)
-    const host = 'wss://demo.aden.pl:443/mqtt'
-    const options = {
-      keepalive: 30,
-      clientId: clientId,
-      protocolId: 'MQTT',
-      protocolVersion: 4,
-      clean: true,
-      reconnectPeriod: 1000,
-      connectTimeout: 30 * 1000 * 60,
-      username: 'klient1',
-      password: 'NFR1DzO25uEI'
-    }
-
-    const client = mqtt.connect(host, options);
-
-    client.on('connect', () => {
-      console.log('Połączono z brokerem MQTT');
-    });
-
-    client.on('error', (error) => {
-      console.error('Błąd połączenia z MQTT:', error);
-    });
-
     async function sendForm() {
       const dataToSend = {
         ts: parseInt(Date.now() / 1000),
         type: "Form",
         id: "67292b604f37399482d21413",
         template: {
-          n: document.getElementById('n').value, // imię
-          sn: document.getElementById('sn').value, // nazwisko
-          em: document.getElementById('em').value, // email
-          tel: document.getElementById('tel').value, // telefon
-          disc: document.getElementById('disc').value, // opis
-          addr: document.getElementById('addr').value // adresat
+          n: document.getElementById('n').value,
+          sn: document.getElementById('sn').value,
+          em: document.getElementById('em').value,
+          tel: document.getElementById('tel').value,
+          disc: document.getElementById('disc').value,
+          addr: document.getElementById('addr').value
         }
       };
-      
-      client.publish('platform/devices/statuses', JSON.stringify(dataToSend), (error) => {
-        if (error) {
-          console.error('Błąd wysyłania danych przez MQTT:', error);
+
+      try {
+        const response = await fetch('/saveFormData', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(dataToSend)
+        });
+        if (response.ok) {
+          console.log('Dane formularza zapisane na serwerze');
         } else {
-          console.log('Dane wysłane przez MQTT:', dataToSend);
+          console.error('Błąd podczas zapisywania danych formularza na serwerze');
         }
-      });
+      } catch (err) {
+        console.error('Błąd połączenia z serwerem:', err);
+      }
     }
 
     function startVideo() {
@@ -137,7 +83,6 @@
         console.error('Nie znaleziono elementu video');
         return;
       }
-
       navigator.mediaDevices.getUserMedia({ video: {} })
         .then(stream => {
           video.srcObject = stream;
@@ -190,13 +135,22 @@
               }
             };
 
-            client.publish('platform/devices/statuses', JSON.stringify(dataToSend), (error) => {
-              if (error) {
-                console.error('Błąd wysyłania danych przez MQTT:', error);
+            try {
+              const response = await fetch('/saveFaceData', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(dataToSend)
+              });
+              if (response.ok) {
+                console.log('Dane wykrycia twarzy zapisane na serwerze');
               } else {
-                console.log('Dane wysłane przez MQTT:', dataToSend);
+                console.error('Błąd podczas zapisywania danych wykrycia twarzy na serwerze');
               }
-            });
+            } catch (err) {
+              console.error('Błąd połączenia z serwerem:', err);
+            }
           }
         } catch (err) {
           console.error('Błąd rozpoznawania twarzy:', err);
